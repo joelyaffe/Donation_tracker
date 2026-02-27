@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Spotify to Apple Music</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+      background: #000;
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container { max-width: 800px; margin: 0 auto; }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #1DB954, #fc3c44);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #888;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      padding: 16px;
+      resize: vertical;
+      font-family: inherit;
+    }
+
+    textarea::placeholder { color: #666; }
+    textarea:focus { outline: none; border-color: #fc3c44; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 16px;
+      transition: opacity 0.2s;
+    }
+
+    .btn:active { opacity: 0.7; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #1DB954, #1ed760);
+      color: #000;
+    }
+
+    .btn-apple {
+      background: linear-gradient(135deg, #fc3c44, #d42f37);
+      color: #fff;
+    }
+
+    .status {
+      text-align: center;
+      padding: 16px;
+      color: #aaa;
+      font-size: 15px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #1DB954, #fc3c44);
+      border-radius: 2px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .results { margin-top: 24px; }
+
+    .song-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .song-card img {
+      width: 56px;
+      height: 56px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      object-fit: cover;
+    }
+
+    .song-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .song-title {
+      font-weight: 600;
+      font-size: 15px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .song-artist {
+      color: #aaa;
+      font-size: 13px;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .song-status {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .found { color: #1DB954; }
+    .not-found { color: #fc3c44; }
+
+    .song-action { flex-shrink: 0; }
+
+    .open-link {
+      display: inline-block;
+      padding: 8px 16px;
+      background: #fc3c44;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .open-link:active { opacity: 0.7; }
+
+    .summary-box {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 24px;
+      text-align: center;
+    }
+
+    .summary-box h3 { font-size: 18px; margin-bottom: 8px; }
+    .summary-box p { color: #aaa; font-size: 14px; line-height: 1.5; }
+
+    .open-all-section {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid #333;
+    }
+
+    .open-all-section p {
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+
+    .hidden { display: none; }
+
+    .error-msg {
+      background: #2a1515;
+      border: 1px solid #fc3c44;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      color: #ff8888;
+      font-size: 14px;
+    }
+
+    .tip-box {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: #aaa;
+      line-height: 1.6;
+    }
+
+    .tip-box strong { color: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Spotify &rarr; Apple Music</h1>
+    <p class="subtitle">Paste your iMessage text with Spotify links below</p>
+
+    <textarea id="input" placeholder="Paste your iMessage conversation here...&#10;&#10;Any Spotify links (open.spotify.com/track/...) will be detected automatically."></textarea>
+
+    <button class="btn btn-primary" id="convertBtn" onclick="convert()">Find Songs on Apple Music</button>
+
+    <div id="statusArea" class="hidden">
+      <p class="status" id="statusText">Processing...</p>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div id="errorArea" class="hidden">
+      <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <div id="results" class="results hidden"></div>
+
+    <div class="tip-box">
+      <strong>How to use:</strong><br>
+      1. Open iMessage and find the conversation with Marc Kempkens<br>
+      2. Select &amp; copy the messages that contain Spotify links<br>
+      3. Paste them into the text box above<br>
+      4. Tap "Find Songs on Apple Music"<br>
+      5. Tap "Open" next to each song to add it to your Apple Music library
+    </div>
+  </div>
+
+  <script>
+    // Extract all Spotify track URLs from text
+    function extractSpotifyUrls(text) {
+      // Match various Spotify URL formats:
+      // https://open.spotify.com/track/XXXX
+      // https://open.spotify.com/track/XXXX?si=YYYY
+      // http://open.spotify.com/track/XXXX
+      // spotify:track:XXXX
+      const urlRegex = /https?:\/\/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?track\/([a-zA-Z0-9]+)(?:\?[^\s)}\]]*)?/g;
+      const uriRegex = /spotify:track:([a-zA-Z0-9]+)/g;
+
+      const tracks = new Map(); // dedupe by track ID
+
+      let match;
+      while ((match = urlRegex.exec(text)) !== null) {
+        const id = match[1];
+        tracks.set(id, match[0].split('?')[0]); // store clean URL
+      }
+      while ((match = uriRegex.exec(text)) !== null) {
+        const id = match[1];
+        tracks.set(id, `https://open.spotify.com/track/${id}`);
+      }
+
+      return Array.from(tracks.entries()).map(([id, url]) => ({ id, url }));
+    }
+
+    // Fetch song metadata from Spotify oEmbed (no auth required)
+    async function getSpotifyMeta(url) {
+      const oembed = `https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`;
+      const res = await fetch(oembed);
+      if (!res.ok) throw new Error(`Spotify oEmbed failed: ${res.status}`);
+      const data = await res.json();
+      // title is usually "Song Name - Artist" or just "Song Name"
+      return {
+        title: data.title || '',
+        thumbnail: data.thumbnail_url || '',
+        rawTitle: data.title || ''
+      };
+    }
+
+    // Parse "Song - Artist" from oEmbed title
+    function parseSongArtist(rawTitle) {
+      // Spotify oEmbed titles are usually just the track name
+      // But sometimes formatted as "Track Name" with artist info elsewhere
+      // We'll use the full title as a search query
+      return rawTitle;
+    }
+
+    // Search Apple Music / iTunes for a song
+    async function searchAppleMusic(query) {
+      const url = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&media=music&entity=song&limit=3`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`iTunes Search failed: ${res.status}`);
+      const data = await res.json();
+      return data.results || [];
+    }
+
+    function showStatus(msg, progress) {
+      const area = document.getElementById('statusArea');
+      const text = document.getElementById('statusText');
+      const fill = document.getElementById('progressFill');
+      area.classList.remove('hidden');
+      text.textContent = msg;
+      if (progress !== undefined) {
+        fill.style.width = progress + '%';
+      }
+    }
+
+    function hideStatus() {
+      document.getElementById('statusArea').classList.add('hidden');
+    }
+
+    function showError(msg) {
+      const area = document.getElementById('errorArea');
+      document.getElementById('errorMsg').textContent = msg;
+      area.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('errorArea').classList.add('hidden');
+    }
+
+    async function convert() {
+      const input = document.getElementById('input').value.trim();
+      const btn = document.getElementById('convertBtn');
+      const resultsDiv = document.getElementById('results');
+
+      hideError();
+      resultsDiv.classList.add('hidden');
+      resultsDiv.innerHTML = '';
+
+      if (!input) {
+        showError('Please paste your iMessage text containing Spotify links.');
+        return;
+      }
+
+      const spotifyTracks = extractSpotifyUrls(input);
+
+      if (spotifyTracks.length === 0) {
+        showError(
+          'No Spotify track links found in the pasted text. ' +
+          'Make sure the text contains links like https://open.spotify.com/track/...'
+        );
+        return;
+      }
+
+      btn.disabled = true;
+      showStatus(`Found ${spotifyTracks.length} Spotify track(s). Resolving...`, 0);
+
+      const songs = [];
+      let foundCount = 0;
+
+      for (let i = 0; i < spotifyTracks.length; i++) {
+        const track = spotifyTracks[i];
+        const progress = Math.round(((i + 1) / spotifyTracks.length) * 100);
+        showStatus(`Processing track ${i + 1} of ${spotifyTracks.length}...`, progress);
+
+        let spotifyMeta = null;
+        let appleResult = null;
+
+        // Step 1: Get Spotify metadata
+        try {
+          spotifyMeta = await getSpotifyMeta(track.url);
+        } catch (e) {
+          console.warn('Spotify oEmbed failed for', track.url, e);
+          songs.push({
+            spotifyUrl: track.url,
+            spotifyId: track.id,
+            title: `Unknown (Track ID: ${track.id})`,
+            artist: '',
+            error: 'Could not fetch song info from Spotify',
+            appleResult: null
+          });
+          continue;
+        }
+
+        // Step 2: Search Apple Music
+        const searchQuery = spotifyMeta.rawTitle;
+        try {
+          const results = await searchAppleMusic(searchQuery);
+          if (results.length > 0) {
+            appleResult = results[0]; // best match
+            foundCount++;
+          }
+        } catch (e) {
+          console.warn('Apple Music search failed for', searchQuery, e);
+        }
+
+        songs.push({
+          spotifyUrl: track.url,
+          spotifyId: track.id,
+          title: spotifyMeta.rawTitle,
+          artist: '',
+          thumbnail: spotifyMeta.thumbnail || (appleResult ? appleResult.artworkUrl100 : ''),
+          appleResult: appleResult
+        });
+
+        // Small delay to avoid rate limiting
+        if (i < spotifyTracks.length - 1) {
+          await new Promise(r => setTimeout(r, 300));
+        }
+      }
+
+      hideStatus();
+      btn.disabled = false;
+
+      // Render results
+      renderResults(songs, foundCount);
+    }
+
+    function renderResults(songs, foundCount) {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '';
+      resultsDiv.classList.remove('hidden');
+
+      // Summary
+      const summary = document.createElement('div');
+      summary.className = 'summary-box';
+      summary.innerHTML = `
+        <h3>${foundCount} of ${songs.length} songs found on Apple Music</h3>
+        <p>${foundCount === songs.length
+          ? 'All songs were found! Tap "Open" to view each in Apple Music.'
+          : 'Some songs could not be matched. You can search for them manually.'
+        }</p>
+      `;
+
+      // If there are found songs, add "Open All" instructions
+      if (foundCount > 0) {
+        const appleSongs = songs.filter(s => s.appleResult);
+        const openAllHtml = `
+          <div class="open-all-section">
+            <p>Tap each "Open" button below to open the song in Apple Music, then tap the "+" or "Add" button in Apple Music to save it to your library.</p>
+          </div>
+        `;
+        summary.innerHTML += openAllHtml;
+      }
+
+      resultsDiv.appendChild(summary);
+
+      // Song cards
+      for (const song of songs) {
+        const card = document.createElement('div');
+        card.className = 'song-card';
+
+        const artwork = song.appleResult
+          ? song.appleResult.artworkUrl100.replace('100x100', '112x112')
+          : song.thumbnail || '';
+
+        const artistName = song.appleResult
+          ? song.appleResult.artistName
+          : song.artist || '';
+
+        const trackName = song.appleResult
+          ? song.appleResult.trackName
+          : song.title;
+
+        card.innerHTML = `
+          ${artwork ? `<img src="${artwork}" alt="Album art">` : '<div style="width:56px;height:56px;background:#333;border-radius:8px;flex-shrink:0"></div>'}
+          <div class="song-info">
+            <div class="song-title">${escapeHtml(trackName)}</div>
+            ${artistName ? `<div class="song-artist">${escapeHtml(artistName)}</div>` : ''}
+            ${song.appleResult
+              ? `<div class="song-status found">Found on Apple Music</div>`
+              : `<div class="song-status not-found">${song.error || 'Not found on Apple Music'}</div>`
+            }
+          </div>
+          <div class="song-action">
+            ${song.appleResult
+              ? `<a href="${song.appleResult.trackViewUrl}" target="_blank" class="open-link">Open</a>`
+              : `<a href="https://music.apple.com/search?term=${encodeURIComponent(song.title)}" target="_blank" class="open-link" style="background:#555">Search</a>`
+            }
+          </div>
+        `;
+
+        resultsDiv.appendChild(card);
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
